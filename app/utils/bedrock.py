@@ -302,9 +302,13 @@ class BedrockHandler:
         """Invoke the model with streaming for the provided messages."""
         if "nova-canvas" in self.model_id or "nova-reel" in self.model_id:
             raise ValueError("Streaming is not supported for image or video generation models")
+            
+        # Filter out any system messages as they're not supported in streaming API
+        valid_messages = [msg for msg in messages if msg["role"] in ["user", "assistant"]]
+        
         return self.client.converse_stream(
             modelId=self.model_id,
-            messages=messages,
+            messages=valid_messages,
             inferenceConfig={"temperature": self.params.get("temperature", 0.0)},
             additionalModelRequestFields={"top_k": self.params.get("top_k", 100)} if "anthropic" in self.model_id else {}
         )

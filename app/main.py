@@ -310,12 +310,16 @@ def handle_text_generation(
     retriever: KBHandler
 ) -> None:
     """Handle text generation with or without streaming."""
-    # Add system message if available
-    full_messages = []
+    # For streaming API, we cannot use the system message directly as a message
+    # Instead, we need to prepend it to the first user message
+    full_messages = messages.copy()
     system_msg = bedrock_handler.system_message()
-    if system_msg:
-        full_messages.append(system_msg)
-    full_messages.extend(messages)
+    
+    # If there's a system message and user messages, prepend system prompt to first user message
+    if system_msg and len(full_messages) > 0 and full_messages[0]["role"] == "user":
+        sys_content = system_msg["content"][0]["text"]
+        user_content = full_messages[0]["content"][0]["text"]
+        full_messages[0]["content"][0]["text"] = f"{sys_content}\n\n{user_content}"
     
     if streaming:
         placeholder = st.empty()
@@ -329,7 +333,15 @@ def handle_text_generation(
                 placeholder.markdown(streamed_response)
         full_response = {"text": streamed_response}
     else:
-        response = bedrock_handler.invoke_model(full_messages)
+        # For non-streaming, we can use the system message directly in some models
+        converse_messages = full_messages
+        if "anthropic" in bedrock_handler.model_id:
+            converse_messages = []
+            if system_msg:
+                converse_messages.append(system_msg)
+            converse_messages.extend(full_messages)
+            
+        response = bedrock_handler.invoke_model(converse_messages)
         full_response = response["output"]["message"]["content"][0]["text"]
         st.write(full_response)
 
