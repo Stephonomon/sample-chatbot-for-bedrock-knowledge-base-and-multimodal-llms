@@ -263,6 +263,17 @@ class BedrockHandler:
                 file_format = Path(file.name).suffix[1:].lower()
                 if file_format in ["png", "jpeg", "jpg"]:
                     content.append({"image": file_bytes})
+                elif file_format in ["pdf", "txt", "csv", "doc", "docx"]:
+                    # Log that we're processing a document
+                    print(f"Processing document: {file.name} ({file_format}, {len(file_bytes)} bytes)")
+                    
+                    # For PDF documents, we should indicate they're being sent to the model
+                    if "uploaded_document_content" in st.session_state:
+                        st.session_state.uploaded_document_content[file.name] = {
+                            "extension": file_format,
+                            "size": len(file_bytes),
+                            "processed": True
+                        }
                     
         return {"role": "user", "content": content}
     

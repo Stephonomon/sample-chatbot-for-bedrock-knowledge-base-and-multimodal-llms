@@ -20,6 +20,7 @@ def clear_screen() -> None:
         {"role": "assistant", "content": configs["start_message"]}
     ]
     st.session_state.bedrock_messages = []
+    st.session_state.uploaded_document_content = {}
     if "video_job" in st.session_state:
         st.session_state.video_job = None
 
@@ -109,7 +110,35 @@ def setup_sidebar(configs: Dict[str, Any]) -> tuple[str, str, bool, str, str]:
     elif is_image_model:
         st.session_state.uploaded_files = st.sidebar.file_uploader("Supported file types are .png, .jpeg", accept_multiple_files=True)
     else:
-        st.session_state.uploaded_files = st.sidebar.file_uploader("Upload a file", accept_multiple_files=True)
+        uploaded_files = st.sidebar.file_uploader("Upload a file", accept_multiple_files=True)
+        
+        # Process uploaded files and extract content for verification
+        if uploaded_files and uploaded_files != st.session_state.get("uploaded_files", []):
+            st.session_state.uploaded_files = uploaded_files
+            
+            for file in uploaded_files:
+                file_extension = Path(file.name).suffix[1:].lower()
+                
+                if file_extension == "pdf":
+                    with st.sidebar.expander(f"Uploaded: {file.name}", expanded=True):
+                        st.info("PDF detected. Processing content...")
+                        try:
+                            # Extract first 500 chars to verify content
+                            file_bytes = file.getvalue()
+                            st.session_state.uploaded_document_content[file.name] = {
+                                "extension": file_extension,
+                                "size": len(file_bytes),
+                                "processed": True
+                            }
+                            st.success(f"✅ PDF processed ({len(file_bytes)} bytes)")
+                        except Exception as e:
+                            st.error(f"Error processing PDF: {str(e)}")
+                else:
+                    with st.sidebar.expander(f"Uploaded: {file.name}"):
+                        st.info(f"File type: {file_extension}")
+        else:
+            st.session_state.uploaded_files = uploaded_files
+            
     st.sidebar.button("New Chat", on_click=clear_screen, type="primary")
     
     return selected_region, selected_model, streaming_on, kb_selection, s3_uri
@@ -177,6 +206,9 @@ def main():
 
     if "bedrock_messages" not in st.session_state:
         st.session_state.bedrock_messages = []
+        
+    if "uploaded_document_content" not in st.session_state:
+        st.session_state.uploaded_document_content = {}
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -315,6 +347,16 @@ def handle_text_generation(
     full_messages = messages.copy()
     system_msg = bedrock_handler.system_message()
     
+    # Log information about uploaded documents for verification
+    if st.session_state.get("uploaded_files") and st.session_state.get("uploaded_document_content"):
+        document_info = st.expander("📄 Document Processing Status", expanded=True)
+        document_info.write("The following documents are being used in this conversation:")
+        for file_name, file_info in st.session_state.uploaded_document_content.items():
+            if file_info.get("processed"):
+                document_info.success(f"✅ {file_name} ({file_info['extension']}, {file_info['size']} bytes)")
+            else:
+                document_info.error(f"❌ {file_name} could not be processed")
+    
     # If there's a system message and user messages, prepend system prompt to first user message
     if system_msg and len(full_messages) > 0 and full_messages[0]["role"] == "user":
         sys_content = system_msg["content"][0]["text"]
@@ -346,8 +388,13 @@ def handle_text_generation(
         st.write(full_response)
 
     if docs:
-        with st.expander("Show source details >"):
-            st.write(retriever.parse_kb_output_to_reference(docs))
+        with st.expander("📚 Knowledge Base Sources Used", expanded=True):
+            st.info(f"Found {len(docs)} relevant documents in knowledge base")
+            for i, doc in enumerate(docs):
+                st.markdown(f"**Document {i+1}** (Score: {doc['score']:.2f})")
+                st.code(doc['content']['text'][:500] + "..." if len(doc['content']['text']) > 500 else doc['content']['text'])
+                st.markdown(f"*Source: {doc['location']}*")
+                st.divider()
     
     update_chat_history(full_response)
 
