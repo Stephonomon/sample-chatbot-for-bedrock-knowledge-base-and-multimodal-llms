@@ -1,8 +1,9 @@
+
 modules = ["python-3.12"]
-run = "streamlit run undefined"
+run = "streamlit run app/main.py"
 
 [nix]
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "streamlit run undefined"]
+run = ["sh", "-c", "streamlit run app/main.py"]

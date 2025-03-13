@@ -277,15 +277,37 @@ class BedrockHandler:
             return None
         return {"role": "system", "content": [{"text": self.system_prompt}]}
     
-    def invoke_model(self, messages: List[Dict[str, Any]]) -> Any:
+    def invoke_model(self, messages: List[Dict[str, Any]]) -> Union[Dict[str, Any], bytes]:
         """Invoke the model with the provided messages."""
-        # Implementation depends on model type
-        pass
+        try:
+            if "nova-canvas" in self.model_id:
+                return self.generate_image(messages)
+            elif "nova-reel" in self.model_id:
+                return self.generate_video(
+                    messages[-1]["content"][0]["text"],
+                    messages[-1].get("s3_uri")
+                )
+            else:
+                return self.client.converse(
+                    modelId=self.model_id,
+                    messages=messages,
+                    inferenceConfig={"temperature": self.params.get("temperature", 0.0)},
+                    additionalModelRequestFields={"top_k": self.params.get("top_k", 100)} if "anthropic" in self.model_id else {}           
+                )
+        except Exception as e:
+            st.error(f"Error invoking model: {str(e)}")
+            return {"output": {"message": {"content": [{"text": f"Error: {str(e)}"}]}}}
     
     def invoke_model_with_stream(self, messages: List[Dict[str, Any]]) -> Any:
         """Invoke the model with streaming for the provided messages."""
-        # Implementation depends on model type
-        pass
+        if "nova-canvas" in self.model_id or "nova-reel" in self.model_id:
+            raise ValueError("Streaming is not supported for image or video generation models")
+        return self.client.converse_stream(
+            modelId=self.model_id,
+            messages=messages,
+            inferenceConfig={"temperature": self.params.get("temperature", 0.0)},
+            additionalModelRequestFields={"top_k": self.params.get("top_k", 100)} if "anthropic" in self.model_id else {}
+        )
 
 class KBHandler:
     """Handles interactions with Bedrock knowledge bases."""
