@@ -151,7 +151,7 @@ def main():
         configs["nova_model_params"]
     )
     
-    bedrock_handler = BedrockHandler(bedrock_runtime, model_id, params)
+    bedrock_handler = BedrockHandler(bedrock_runtime, model_id, params, configs.get("system_prompt"))
 
     bedrock_agent_runtime_client = boto3.client(
         "bedrock-agent-runtime",
@@ -310,10 +310,17 @@ def handle_text_generation(
     retriever: KBHandler
 ) -> None:
     """Handle text generation with or without streaming."""
+    # Add system message if available
+    full_messages = []
+    system_msg = bedrock_handler.system_message()
+    if system_msg:
+        full_messages.append(system_msg)
+    full_messages.extend(messages)
+    
     if streaming:
         placeholder = st.empty()
         streamed_response = ""
-        stream = bedrock_handler.invoke_model_with_stream(messages).get("stream")
+        stream = bedrock_handler.invoke_model_with_stream(full_messages).get("stream")
         
         if stream:
             for event in stream:
@@ -322,7 +329,7 @@ def handle_text_generation(
                 placeholder.markdown(streamed_response)
         full_response = {"text": streamed_response}
     else:
-        response = bedrock_handler.invoke_model(messages)
+        response = bedrock_handler.invoke_model(full_messages)
         full_response = response["output"]["message"]["content"][0]["text"]
         st.write(full_response)
 

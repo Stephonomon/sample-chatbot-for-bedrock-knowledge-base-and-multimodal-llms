@@ -1,6 +1,7 @@
 {
     "page_title": "Bedrock KnowledgeBases with Multimodal LLMs",
     "start_message": "I am a GenAI powered chatbot, how can I help you?",
+    "system_prompt": "You are a helpful AI assistant that provides accurate and concise information. When given information from a knowledge base, highlight the most relevant details in your response.",
     "bedrock_region": "us-east-1",
     "claude_model_params": {
         "anthropic_version": "bedrock-2023-05-31",

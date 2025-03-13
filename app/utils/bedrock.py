@@ -238,6 +238,55 @@ class BedrockHandler:
             additionalModelRequestFields={"top_k": 100} if "anthropic" in self.model_id else {}
         )
 
+class BedrockHandler:
+    """Handles interactions with Bedrock models."""
+    
+    def __init__(self, client: Any, model_id: str, params: Dict[str, Any], system_prompt: Optional[str] = None):
+        self.client = client
+        self.model_id = model_id
+        self.params = params
+        self.system_prompt = system_prompt
+        self.s3_handler = S3Handler()
+    
+    @staticmethod
+    def user_message(message: str, context: Optional[str] = None, files: Optional[List[Any]] = None) -> Dict[str, Any]:
+        """Format a user message for the model."""
+        content = [{"text": message}]
+        
+        if context:
+            message = f"Context:\n{context}\n\nQuestion: {message}"
+            content = [{"text": message}]
+            
+        if files:
+            for file in files:
+                file_bytes = file.getvalue()
+                file_format = Path(file.name).suffix[1:].lower()
+                if file_format in ["png", "jpeg", "jpg"]:
+                    content.append({"image": file_bytes})
+                    
+        return {"role": "user", "content": content}
+    
+    @staticmethod
+    def assistant_message(message: str) -> Dict[str, Any]:
+        """Format an assistant message for the model."""
+        return {"role": "assistant", "content": [{"text": message}]}
+    
+    def system_message(self) -> Optional[Dict[str, Any]]:
+        """Format a system message for the model."""
+        if not self.system_prompt:
+            return None
+        return {"role": "system", "content": [{"text": self.system_prompt}]}
+    
+    def invoke_model(self, messages: List[Dict[str, Any]]) -> Any:
+        """Invoke the model with the provided messages."""
+        # Implementation depends on model type
+        pass
+    
+    def invoke_model_with_stream(self, messages: List[Dict[str, Any]]) -> Any:
+        """Invoke the model with streaming for the provided messages."""
+        # Implementation depends on model type
+        pass
+
 class KBHandler:
     """Handles interactions with Bedrock knowledge bases."""
 
