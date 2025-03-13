@@ -1,7 +1,7 @@
 {
     "page_title": "Bedrock KnowledgeBases with Multimodal LLMs",
     "start_message": "I am a GenAI powered chatbot, how can I help you?",
-    "bedrock_region": "eu-central-1",
+    "bedrock_region": "us-east-1",
     "claude_model_params": {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
@@ -36,6 +36,7 @@
             "Anthropic Claude 3 Haiku": "anthropic.claude-3-haiku-20240307-v1:0",
             "Anthropic Claude 3 Sonnet": "anthropic.claude-3-sonnet-20240229-v1:0",
             "Anthropic Claude 3.5 Sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "Anthropic Claude 3.7 Sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "Amazon Nova Micro": "amazon.nova-micro-v1:0",
             "Amazon Nova Lite": "amazon.nova-lite-v1:0",
             "Amazon Nova Pro": "amazon.nova-pro-v1:0",
